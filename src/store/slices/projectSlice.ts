@@ -186,6 +186,23 @@ export const deleteTask = createAsyncThunk(
   }
 );
 
+/**
+ * Add a user to a project by email
+ */
+export const addUserToProject = createAsyncThunk(
+  'projects/addUser',
+  async ({ projectId, userEmail }: { projectId: number; userEmail: string }, { rejectWithValue }) => {
+    try {
+      await api.post(`/projects/${projectId}/users`, { userEmail });
+      return { projectId };
+    } catch (error: unknown) {
+      console.error('Error adding user to project:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 // ==================== PROJECT SLICE ====================
 
 /**

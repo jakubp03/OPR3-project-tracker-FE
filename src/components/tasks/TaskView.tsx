@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Dialog, Paper, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, Paper, Snackbar, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -8,6 +8,9 @@ import TaskForm from './TaskForm';
 
 export default function TaskView() {
     const [openEditDialog, setOpenEditDialog] = useState(false);
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+        open: false, message: '', severity: 'success'
+    });
     const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
@@ -23,29 +26,34 @@ export default function TaskView() {
 
     const handleEditTask = async (data: CreateTaskRequest | UpdateTaskRequest) => {
         if (projectId && taskId) {
-            // Ensure status is always provided for update
             const updateData: UpdateTaskRequest = {
                 title: data.title,
                 description: data.description,
                 status: data.status || task?.status || TaskStatus.TODO,
                 dueDate: data.dueDate
             };
-            await dispatch(updateTask({
+            const result = await dispatch(updateTask({
                 projectId: Number(projectId),
                 taskId: Number(taskId),
                 data: updateData
             }));
-            setOpenEditDialog(false);
+            if (updateTask.fulfilled.match(result)) {
+                setOpenEditDialog(false);
+                setSnackbar({ open: true, message: 'Task updated successfully!', severity: 'success' });
+            } else {
+                setSnackbar({ open: true, message: 'Failed to update task.', severity: 'error' });
+            }
         }
     };
 
     const handleDeleteTask = async () => {
-        if (projectId && taskId && window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-            await dispatch(deleteTask({
-                projectId: Number(projectId),
-                taskId: Number(taskId)
-            }));
-            navigate(`/projects/${projectId}`);
+        if (projectId && taskId && window.confirm('Delete this task? This cannot be undone.')) {
+            const result = await dispatch(deleteTask({ projectId: Number(projectId), taskId: Number(taskId) }));
+            if (deleteTask.fulfilled.match(result)) {
+                navigate(`/projects/${projectId}`);
+            } else {
+                setSnackbar({ open: true, message: 'Failed to delete task.', severity: 'error' });
+            }
         }
     };
 
@@ -70,10 +78,27 @@ export default function TaskView() {
 
     return (
         <Box sx={{ p: 4 }}>
-            {/* Task Title */}
-            <Typography variant="h4" sx={{ color: '#424242', mb: 4, fontWeight: 500 }}>
-                {task.title}
-            </Typography>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
+                <Box>
+                    <Button
+                        onClick={() => navigate(`/projects/${projectId}`)}
+                        sx={{ color: '#757575', textTransform: 'none', mb: 1, pl: 0 }}
+                    >
+                        ← Back to Project
+                    </Button>
+                    <Typography variant="h4" sx={{ color: '#424242', fontWeight: 500 }}>
+                        {task.title}
+                    </Typography>
+                </Box>
+                <Button
+                    variant="contained"
+                    onClick={() => setOpenEditDialog(true)}
+                    sx={{ bgcolor: '#616161', color: '#fff', '&:hover': { bgcolor: '#424242' }, textTransform: 'none', px: 3 }}
+                >
+                    Edit Task
+                </Button>
+            </Box>
 
             {/* Description Box */}
             <Paper
@@ -107,7 +132,7 @@ export default function TaskView() {
                         Status
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#424242', mt: 0.5 }}>
-                        {task.status}
+                        {task.status === TaskStatus.TODO ? 'To Do' : task.status === TaskStatus.IN_PROGRESS ? 'In Progress' : 'Done'}
                     </Typography>
                 </Box>
                 <Box>
@@ -136,23 +161,6 @@ export default function TaskView() {
                 </Box>
             </Paper>
 
-            {/* Edit Task Button */}
-            <Button
-                variant="contained"
-                onClick={() => setOpenEditDialog(true)}
-                sx={{
-                    bgcolor: '#616161',
-                    color: '#fff',
-                    '&:hover': {
-                        bgcolor: '#424242'
-                    },
-                    textTransform: 'none',
-                    px: 3
-                }}
-            >
-                Edit Task
-            </Button>
-
             {/* Edit Task Dialog */}
             <Dialog
                 open={openEditDialog}
@@ -167,6 +175,18 @@ export default function TaskView() {
                     onDelete={handleDeleteTask}
                 />
             </Dialog>
+
+            {/* Snackbar */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

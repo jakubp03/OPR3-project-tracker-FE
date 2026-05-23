@@ -6,7 +6,9 @@ import {
     DialogTitle,
     TextField
 } from '@mui/material';
-import { useForm } from 'react-hook-form';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs, { Dayjs } from 'dayjs';
+import { Controller, useForm } from 'react-hook-form';
 import { CreateProjectRequest, Project, UpdateProjectRequest } from '../../types/project';
 
 interface ProjectFormProps {
@@ -16,26 +18,32 @@ interface ProjectFormProps {
     onArchive?: () => void;
 }
 
+type FormValues = {
+    title: string;
+    description: string;
+    dueDate: Dayjs | null;
+};
+
 export default function ProjectForm({ project, onSubmit, onCancel, onArchive }: ProjectFormProps) {
     const {
         register,
         handleSubmit,
+        control,
         formState: { errors }
-    } = useForm<CreateProjectRequest | UpdateProjectRequest>({
+    } = useForm<FormValues>({
         defaultValues: {
             title: project?.title || '',
             description: project?.description || '',
-            dueDate: project?.dueDate ? new Date(project.dueDate).toISOString().split('T')[0] : ''
+            dueDate: project?.dueDate ? dayjs(project.dueDate) : null
         }
     });
 
-    const onFormSubmit = (data: CreateProjectRequest | UpdateProjectRequest) => {
-        // Convert date to ISO format for API
-        const formattedData = {
-            ...data,
-            dueDate: new Date(data.dueDate).toISOString()
-        };
-        onSubmit(formattedData);
+    const onFormSubmit = (data: FormValues) => {
+        onSubmit({
+            title: data.title,
+            description: data.description,
+            dueDate: data.dueDate ? data.dueDate.toISOString() : ''
+        });
     };
 
     return (
@@ -90,26 +98,28 @@ export default function ProjectForm({ project, onSubmit, onCancel, onArchive }: 
                         }}
                     />
 
-                    <TextField
-                        label="Due Date"
-                        type="date"
-                        fullWidth
-                        InputLabelProps={{ shrink: true }}
-                        {...register('dueDate', {
-                            required: 'Due date is required'
-                        })}
-                        error={!!errors.dueDate}
-                        helperText={errors.dueDate?.message}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                '&.Mui-focused fieldset': {
-                                    borderColor: '#616161'
-                                }
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                                color: '#616161'
-                            }
-                        }}
+                    <Controller
+                        name="dueDate"
+                        control={control}
+                        rules={{ required: 'Due date is required', validate: v => (v && v.isValid()) || 'Invalid date' }}
+                        render={({ field }) => (
+                            <DatePicker
+                                label="Due Date"
+                                value={field.value}
+                                onChange={field.onChange}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        error: !!errors.dueDate,
+                                        helperText: errors.dueDate?.message,
+                                        sx: {
+                                            '& .MuiOutlinedInput-root': { '&.Mui-focused fieldset': { borderColor: '#616161' } },
+                                            '& .MuiInputLabel-root.Mui-focused': { color: '#616161' }
+                                        }
+                                    }
+                                }}
+                            />
+                        )}
                     />
                 </Box>
             </DialogContent>
