@@ -1,4 +1,13 @@
-# React + TypeScript + Vite
+# Project and task management app
+
+This is a React application for project and task management with with JWT-based authentication. 
+
+This application is split across two repositories: this repository contains the React frontend, and the [backend is maintained in a separate repository](https://github.com/jakubp03/OPR3-project-tracker).
+
+## Prerequisites
+
+- Node.js 20.19+ or 22.12+.
+- npm (included with Node.js).
 
 ## Getting Started
 
@@ -35,3 +44,6 @@
    ```
    npm run preview
    ```
+
+
+   The `VFAP` branch of this repository contains a similar application created as a project for a different school subject
